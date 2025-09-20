@@ -1,0 +1,54 @@
+1. System Health Monitoring (system_health_monitor.py)
+
+#!/usr/bin/env python3
+import psutil, logging, time
+
+logging.basicConfig(filename="system_health.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+CPU_THRESHOLD, MEM_THRESHOLD, DISK_THRESHOLD = 80, 80, 80
+
+def check_system_health():
+    alerts = []
+    if psutil.cpu_percent(interval=1) > CPU_THRESHOLD: alerts.append("High CPU usage")
+    if psutil.virtual_memory().percent > MEM_THRESHOLD: alerts.append("High Memory usage")
+    if psutil.disk_usage('/').percent > DISK_THRESHOLD: alerts.append("High Disk usage")
+    if len(psutil.pids()) > 500: alerts.append("Too many processes")
+    if alerts:
+        for a in alerts: print("[ALERT]", a); logging.warning(a)
+    else:
+        print("System is healthy"); logging.info("System is healthy")
+
+if __name__ == "__main__":
+    while True:
+        check_system_health()
+        time.sleep(60)
+
+---------------------------------------------------------------------------------------------------------------------
+
+
+2. Automated Backup (backup_script.py)
+
+
+
+#!/usr/bin/env python3
+import os, subprocess, datetime, logging, sys
+
+logging.basicConfig(filename="backup.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+SOURCE_DIR="/home/ubuntu/data"
+REMOTE_USER="ubuntu"
+REMOTE_HOST="192.168.1.100"
+REMOTE_PATH="/home/ubuntu/backups"
+
+def perform_backup():
+    ts=datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    f=f"backup_{ts}.tar.gz"
+    try:
+        subprocess.run(["tar","-czf",f,"-C",SOURCE_DIR,"."],check=True)
+        subprocess.run(["scp",f,f"{REMOTE_USER}@{REMOTE_HOST}:{REMOTE_PATH}"],check=True)
+        logging.info(f"Backup successful: {f}"); print("[INFO] Backup successful:",f)
+        os.remove(f)
+    except subprocess.CalledProcessError as e:
+        logging.error("Backup failed"); print("[ERROR] Backup failed:",e); sys.exit(1)
+
+if __name__=="__main__":
+    perform_backup()
+
